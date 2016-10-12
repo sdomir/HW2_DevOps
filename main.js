@@ -13,7 +13,7 @@ function main()
 
 	if( args.length == 0 )
 	{
-		args = ["subject.js"];
+		args = ["mystery.js"];
 	}
 	var filePath = args[0];
 
@@ -43,7 +43,7 @@ function Constraint(properties)
 	// Supported kinds: "fileWithContent","fileExists"
 	// integer, string, phoneNumber
 	this.kind = properties.kind;
-	this.alt = properties.alt;
+	//this.alt = properties.alt;
 }
 
 function fakeDemo()
@@ -61,6 +61,7 @@ var mockFileLibrary =
 {
 	pathExists:
 	{
+		'path/filePresent': {"Sharat.txt":"DevOps_Hw2"},
 		'path/fileExists': {}
 	},
 	fileWithContent:
@@ -68,21 +69,22 @@ var mockFileLibrary =
 		pathContent: 
 		{	
   			file1: 'text content',
+  			file_devops: ''
 		}
-	},
-	dirWithContent:
+	}
+	/*dirWithContent:
 	{
 		pathContent:
 		{
 			file2: 'text content',
 		}
-	}
+	}*/
 };
 
 function generateTestCases()
 {
 
-	var content = "var subject = require('./subject.js')\nvar mock = require('mock-fs');\n";
+	var content = "var mystery = require('./mystery.js')\nvar mock = require('mock-fs');\n";
 	for ( var funcName in functionConstraints )
 	{
 		var params = {};
@@ -95,9 +97,8 @@ function generateTestCases()
 			params[paramName] = [];
 
 		}
-
-		//console.log( params);
-
+		var options = _.contains(functionConstraints[funcName].params, 'options');
+		var phoneNumber = _.contains(functionConstraints[funcName].params, 'phoneNumber');
 		// update parameter values based on known constraints.
 		var constraints = functionConstraints[funcName].constraints;
 		// Handle global constraints...
@@ -114,10 +115,30 @@ function generateTestCases()
 				//params[constraint.ident] = [constraint.value,constraint.alt];	
 			}
 		}
+		format_list = ['\'' + faker.phone.phoneNumber()+'\'','\'' + faker.phone.phoneNumber()+'\'','\''+1+'\''];
 		console.log( params );
 		// Prepare function arguments.
 		list_params = [];
 		result = [];
+		if(phoneNumber)
+		{
+			for (var i =0; i < functionConstraints[funcName].params.length; i++ )
+			{
+			var paramName = functionConstraints[funcName].params[i];
+			var phno = '\'' + faker.phone.phoneNumber()+'\'';
+			params[paramName].push(phno);
+			}
+		}
+		if(options)
+		{
+			for (var i =0; i < functionConstraints[funcName].params.length; i++ )
+			{
+			var paramName = functionConstraints[funcName].params[i];
+			//params[paramName] = '\'' + faker.phone.phoneNumber()+'\'';
+			params[paramName].push(format_list[i]);
+			}
+		}	
+
 		var arg = Object.keys(params).map( function(k) {
 			return list_params.push(params[k]); }).join(",");
 		//console.log(list_params);
@@ -141,14 +162,15 @@ function generateTestCases()
 		{
 			content += generateMockFsTestCases(pathExists,fileWithContent,funcName, args);
 			// Bonus...generate constraint variations test cases....
-			content += generateMockFsTestCases(!pathExists,fileWithContent,funcName, args);
-			content += generateMockFsTestCases(pathExists,!fileWithContent,funcName, args);
-			content += generateMockFsTestCases(!pathExists,!fileWithContent,funcName, args);
+			//content += generateMockFsTestCases(!pathExists,fileWithContent,funcName, args);
+			//content += generateMockFsTestCases(pathExists,!fileWithContent,funcName, args);
+			//content += generateMockFsTestCases(!pathExists,!fileWithContent,funcName, args);
 		}
 		else
 		{
 			// Emit simple test case.
-			content += "subject.{0}({1});\n".format(funcName, args );
+
+			content += "mystery.{0}({1});\n".format(funcName, args );
 
 		}
 			}
@@ -201,7 +223,7 @@ function generateMockFsTestCases (pathExists,fileWithContent,funcName,args)
 		+
 	");\n";
 
-	testCase += "\tsubject.{0}({1});\n".format(funcName, args );
+	testCase += "\tmystery.{0}({1});\n".format(funcName, args );
 	testCase+="mock.restore();\n";
 	return testCase;
 }
@@ -253,25 +275,108 @@ function constraints(filePath)
 									}));
 												
 					}
-					else if(child.left.type == 'CallExpression' && child.left.callee.property.name =="indexOf")
-					{
-						var val = "'" + String(child.left.arguments[0].value)+ "'";
-												
+					
+					else if(child.left.type == 'Identifier' && child.left.name == "area")
+					{	
+						var expression = buf.substring(child.range[0], child.range[1]);
+						var rightHand = buf.substring(child.right.range[0], child.right.range[1])
+						var val = "'" + "(" + String(child.right.value) + ")" + "984-1235" + "'";
+						var alt = "'" + "(" + (parseInt(child.right.value)-10)+"" + ")" + "984-1235" + "'";						
 						functionConstraints[funcName].constraints.push( 
 						new Constraint(
 						{
-							ident: child.left.callee.object.name,
+							ident: params[0],
 							value:  val,
 							funcName: funcName,
-							kind: "string",
+							kind: "phoneNumber",
 							operator : child.operator,
 							expression: expression
-						}));				
-					
-					}
+						}));
+						functionConstraints[funcName].constraints.push( 
+						new Constraint(
+						{
+							ident: params[0],
+							value:  alt,
+							funcName: funcName,
+							kind: "phoneNumber",
+							operator : child.operator,
+							expression: expression
+						}));								
+					}	
 						
 				}
-					
+				
+				/*if( child.type === 'LogicalExpression' && child.right.type == "UnaryExpression")
+                                {
+                                	if(child.right.operator == "!")
+                                        {
+                                                // get expression from original source code:
+                                                var expression = buf.substring(child.range[0], child.range[1]);
+                                                
+												functionConstraints[funcName].constraints.push(
+                                                        new Constraint(
+                                                        {
+                                                                ident: child.right.argument.object.name,
+                                                                value: 1,
+     															funcName: funcName,
+                                                                kind: "string",
+                                                                operator : child.operator,
+                                                                expression: expression
+                                                        }));
+                                                
+                                        }        
+                                 
+                                }*/
+                                        
+				if( child.type === 'BinaryExpression' && child.operator == "!=")
+                                {
+                                        if( child.left.type == 'Identifier' && params.indexOf( child.left.name ) > -1)
+                                        {
+                                                // get expression from original source code:
+                                                var expression = buf.substring(child.range[0], child.range[1]);
+                                                var rightHand = buf.substring(child.right.range[0], child.right.range[1])
+												functionConstraints[funcName].constraints.push(
+                                                        new Constraint(
+                                                        {
+                                                                ident: child.left.name,
+                                                                value: rightHand,
+																funcName: funcName,
+                                                                kind: "string",
+                                                                operator : child.operator,
+                                                                expression: expression
+                                                        }));
+                                                
+                                                
+                                        }
+                                        else if(child.left.type == 'Identifier' && child.left.name == "area")
+										{	
+												var expression = buf.substring(child.range[0], child.range[1]);
+												var rightHand = buf.substring(child.right.range[0], child.right.range[1])
+												var val = "'" + "(" + String(child.right.value) + ")" + "984-1235" + "'";
+												var alt = "'" + "(" + (parseInt(child.right.value)-10)+"" + ")" + "984-1235" + "'";						
+												functionConstraints[funcName].constraints.push( 
+												new Constraint(
+												{
+													ident: params[0],
+													value:  val,
+													funcName: funcName,
+													kind: "phoneNumber",
+													operator : child.operator,
+													expression: expression
+												}));
+												functionConstraints[funcName].constraints.push( 
+												new Constraint(
+												{
+													ident: params[0],
+													value:  alt,
+													funcName: funcName,
+													kind: "phoneNumber",
+													operator : child.operator,
+													expression: expression
+												}));								
+										}	
+                                        
+                                }
 				
 				if( child.type === 'BinaryExpression' && child.operator == "<")
                                 {
@@ -338,9 +443,23 @@ function constraints(filePath)
                                         }
                                 }
 
-                                  
+				if(child.type == 'CallExpression' && child.callee.property && child.callee.property.name == "indexOf")
+					{
+						var val = "'" + String(child.arguments[0].value)+ "'";
+												
+						functionConstraints[funcName].constraints.push( 
+						new Constraint(
+						{
+							ident: child.callee.object.name,
+							value:  val,
+							funcName: funcName,
+							kind: "string",
+							operator : child.operator,
+							expression: expression
+						}));				
+					
+					}                                  
 
-                               
                 if( child.type == "CallExpression" && 
 					 child.callee.property &&
 					 child.callee.property.name =="readFileSync" )
@@ -359,40 +478,82 @@ function constraints(filePath)
 								operator : child.operator,
 								expression: expression
 							}));
+							functionConstraints[funcName].constraints.push( 
+							new Constraint(
+							{
+								ident: params[p],
+								value:  "'pathContent/file_devops'",
+								funcName: funcName,
+								kind: "fileWithContent",
+								operator : child.operator,
+								expression: expression
+							}));
+							functionConstraints[funcName].constraints.push( 
+							new Constraint(
+							{
+								ident: params[p],
+								value:  "'pathContent/file_dev'",
+								funcName: funcName,
+								kind: "fileWithContent",
+								operator : child.operator,
+								expression: expression
+							}));
 						}
 					}
 				}
 				//new
-				/*if( child.type == "CallExpression" &&
+				if( child.type == "CallExpression" &&
                                          child.callee.property &&
                                          child.callee.property.name =="readdirSync" )
                                 {
                                         for( var p =0; p < params.length; p++ )
                                         {
+                                        	
                                                 if( child.arguments[0].name == params[p] )
                                                 {
+                                                        
                                                         functionConstraints[funcName].constraints.push(
                                                         new Constraint(
                                                         {
                                                                 ident: params[p],
-                                                                value:  "'pathContent/file2'",
+                                                                value:  "'path/filePresent'",
                                                                 funcName: funcName,
-                                                                kind: "dirWithContent",
+                                                                kind: "fileWithContent",
                                                                 operator : child.operator,
                                                                 expression: expression
                                                         }));
+                                                        functionConstraints[funcName].constraints.push(
+                                                        new Constraint(
+                                                        {
+                                                                ident: params[p],
+                                                                value:  "'path/fileExists'",
+                                                                funcName: funcName,
+                                                                kind: "fileWithContent",
+                                                                operator : child.operator,
+                                                                expression: expression
+                                                        }));
+                                                        functionConstraints[funcName].constraints.push(
+														new Constraint(
+														{
+															ident: params[p],
+															// A fake path to a file
+															value:  "'path/dirExists'",
+															funcName: funcName,
+															kind: "fileExists",
+															operator : child.operator,
+															expression: expression
+														}));
                                                 }
                                         }
-                                }*/
+                                }
 
 
 				if( child.type == "CallExpression" &&
 					 child.callee.property &&
 					 child.callee.property.name =="existsSync")
 				{
-					for( var p =0; p < params.length; p++ )
-					{
-						if( child.arguments[0].name == params[p] )
+					
+						if( child.arguments[0].name == params[0] )
 						{
 							functionConstraints[funcName].constraints.push( 
 							new Constraint(
@@ -405,8 +566,9 @@ function constraints(filePath)
 								operator : child.operator,
 								expression: expression
 							}));
+							
 						}
-					}
+					
 				}
 
 			});
