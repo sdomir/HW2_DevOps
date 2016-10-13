@@ -10,11 +10,7 @@
 
 4. Run ```node_modules/.bin/istanbul cover test.js``` to check coverage report.
 
-
-
-
-
-
+![Alt text](/master/Coverage_Report.png?raw=true "Coverage report")
 
 
 
