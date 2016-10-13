@@ -115,8 +115,9 @@ function generateTestCases()
 				//params[constraint.ident] = [constraint.value,constraint.alt];	
 			}
 		}
-		format_list = ['\'' + faker.phone.phoneNumber()+'\'','\'' + faker.phone.phoneNumber()+'\'','\''+1+'\''];
-		console.log( params );
+		//format_list = ['\'' + faker.phone.phoneNumber()+'\'','\'' + faker.phone.phoneNumber()+'\'','\''+1+'\''];
+		format_list = ['\'' + faker.phone.phoneNumber()+'\'','\'' + faker.phone.phoneNumber()+'\'','{"normalize":true}'];
+		//console.log( params );
 		// Prepare function arguments.
 		list_params = [];
 		result = [];
